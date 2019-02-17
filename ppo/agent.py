@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 from model import ActorCriticModel
-from rnd.utils.checkpointer import get_latest_check_num
+from utils.checkpointer import get_latest_check_num
 
 
 class Agent(object):

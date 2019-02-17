@@ -8,8 +8,8 @@ from agent import Agent
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.common.cmd_util import make_atari
 from buffer import Buffer
-from rnd.utils.logx import EpochLogger
-from rnd.utils.wrappers import LogWrapper
+from utils.logx import EpochLogger
+from utils.wrappers import LogWrapper
 from baselines.common.atari_wrappers import WarpFrame, wrap_deepmind
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 

@@ -14,28 +14,28 @@ from baselines.common.atari_wrappers import WarpFrame, wrap_deepmind
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 
 
-# def create_env(n_env, seed):
-#     def make_env(rank):
-#         def _thunk():
-#             env = make_atari('BreakoutNoFrameskip-v4')
-#             env.seed(seed + rank)
-#             env = LogWrapper(env)
-#             return wrap_deepmind(env)
-#         return _thunk
-#     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
-#     env = VecFrameStack(env, 4)
-#     return env
-
-def create_env(n_env, seed, test=False):
+def create_env(n_env, seed):
     def make_env(rank):
         def _thunk():
-            env = gym.make('CartPole-v0')
+            env = make_atari('BreakoutNoFrameskip-v4')
             env.seed(seed + rank)
             env = LogWrapper(env)
-            return env
+            return wrap_deepmind(env)
         return _thunk
     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
+    env = VecFrameStack(env, 4)
     return env
+
+# def create_env(n_env, seed, test=False):
+#     def make_env(rank):
+#         def _thunk():
+#             env = gym.make('CartPole-v0')
+#             env.seed(seed + rank)
+#             env = LogWrapper(env)
+#             return env
+#         return _thunk
+#     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
+#     return env
 
 class Runner(object):
 
@@ -121,7 +121,7 @@ class Runner(object):
         # self.agent.sync_old_pi_params()
 
         sample_range = np.arange(len(act_buf))
-        for i in range(3):
+        for i in range(4):
             np.random.shuffle(sample_range)
             for j in range(int(len(act_buf) / 128)):
                 sample_idx = sample_range[128 * j: 128 * (j + 1)]

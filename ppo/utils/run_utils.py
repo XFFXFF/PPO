@@ -11,7 +11,7 @@ DEFAULT_DATA_DIR = osp.join(osp.abspath(osp.dirname(osp.dirname(__file__))), 'da
 FORCE_DATESTAMP = False
 
 
-def setup_logger_kwargs(exp_name, env_name, seed=None, data_dir=None, datestamp=False, extra_exp_name=None):
+def setup_logger_kwargs(env_name, seed=None, data_dir=None, datestamp=False, extra_exp_name=None):
     """
     Sets up the output_dir for a logger and returns a dict for logger kwargs.
 
@@ -58,14 +58,13 @@ def setup_logger_kwargs(exp_name, env_name, seed=None, data_dir=None, datestamp=
 
     # Make base path
     ymd_time = time.strftime("%Y-%m-%d_") if datestamp else ''
-    relpath = ''.join([ymd_time, exp_name])
-    relpath = osp.join(relpath, env_name)
+    relpath = ''.join([ymd_time, env_name])
 
     if seed is not None:
         # Make a seed-specific subfolder in the experiment directory.
         if datestamp:
             hms_time = time.strftime("%Y-%m-%d_%H-%M-%S")
-            subfolder = ''.join([hms_time, '-', exp_name, '_s', str(seed)])
+            subfolder = ''.join([hms_time, '-', '_s', str(seed)])
         else:
             subfolder = ''.join(['seed', str(seed)])
         
@@ -74,8 +73,7 @@ def setup_logger_kwargs(exp_name, env_name, seed=None, data_dir=None, datestamp=
         relpath = osp.join(relpath, subfolder)
 
     data_dir = data_dir or DEFAULT_DATA_DIR
-    logger_kwargs = dict(output_dir=osp.join(data_dir, relpath), 
-                         exp_name=exp_name)
+    logger_kwargs = dict(output_dir=osp.join(data_dir, relpath))
     return logger_kwargs
 
 

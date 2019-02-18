@@ -40,9 +40,6 @@ class Runner(object):
                  lam=0.95,
                  train_epoch_len=128,
                  test_epoch_len=2000,
-                 dtarg=0.01,
-                 train_pi_iters=80,
-                 train_v_iters=80,
                  logger_kwargs=dict()):
 
         self.epochs = epochs
@@ -50,9 +47,6 @@ class Runner(object):
         self.n_env = n_env
         self.train_epoch_len = train_epoch_len
         self.test_epoch_len = test_epoch_len
-        self.dtarg = dtarg
-        self.train_pi_iters = train_pi_iters
-        self.train_v_iters = train_v_iters
         self.logger_kwargs = logger_kwargs
 
         self.checkpoints_dir = self.logger_kwargs['output_dir'] + '/checkpoints'
@@ -89,8 +83,7 @@ class Runner(object):
     def _collect_rollouts(self, logger):
         episode = 0
         for step in range(self.train_epoch_len):
-            acts = self.agent.select_action(self.obs)
-            vals = self.agent.get_val(self.obs)
+            acts, vals = self.agent.select_action(self.obs)
             logger.store(Val=vals)
             next_obs, rews, dones, infos = self.env.step(acts)
             self.t += self.n_env
@@ -110,26 +103,7 @@ class Runner(object):
         start_time = time.time()
         last_vals = self._collect_rollouts(logger)
         obs_buf, act_buf, ret_buf, adv_buf = self.buffer.get(last_vals)
-        # obs_buf /= 255.
-        # feed_dict = {
-        #     self.agent.obs_ph: obs_buf,
-        #     self.agent.act_ph: act_buf,
-        #     self.agent.ret_ph: ret_buf,
-        #     self.agent.adv_ph: adv_buf,
-        # }
-
-        # for i in range(self.train_pi_iters):
-        #     kl, entropy = self.agent.get_kl(feed_dict)
-        #     logger.store(KL=kl, Entropy=entropy)
-        #     if kl > 1.5 * self.dtarg:
-        #         logger.log('Early stopping at step {} due to reaching max kl.'.format(i))
-        #         break
-        #     pi_loss = self.agent.update_pi_params(feed_dict)
-        #     logger.store(PiLoss=pi_loss)
-        # for i in range(self.train_v_iters):
-        #     v_loss = self.agent.update_v_params(feed_dict)
-        #     logger.store(VLoss=v_loss)
-        # self.agent.sync_old_pi_params()
+        obs_buf /= 255.
         lr = self.lr_schedule.value(self.t)
         clip_ratio = self.clip_ratio_schedule.value(self.t)
         sample_range = np.arange(len(act_buf))
@@ -138,16 +112,14 @@ class Runner(object):
             for j in range(int(len(act_buf) / 128)):
                 sample_idx = sample_range[128 * j: 128 * (j + 1)]
                 feed_dict = {
-                    self.agent.pi_lr_ph: lr,
-                    self.agent.v_lr_ph: lr,
+                    self.agent.lr_ph: lr,
                     self.agent.clip_ratio_ph: clip_ratio, 
                     self.agent.obs_ph: obs_buf[sample_idx],
                     self.agent.act_ph: act_buf[sample_idx],
                     self.agent.ret_ph: ret_buf[sample_idx],
                     self.agent.adv_ph: adv_buf[sample_idx],
                 }
-                pi_loss = self.agent.update_pi_params(feed_dict)
-                v_loss = self.agent.update_v_params(feed_dict)
+                pi_loss, v_loss = self.agent.train_model(feed_dict)
                 logger.store(PiLoss=pi_loss, VLoss=v_loss)
                 kl, entropy = self.agent.get_kl(feed_dict)
                 logger.store(KL=kl, Entropy=entropy)
@@ -169,6 +141,7 @@ class Runner(object):
             logger.log_tabular('PiLoss', average_only=True)
             logger.log_tabular('VLoss', average_only=True)
             logger.log_tabular('LearningRate', self.lr_schedule.value(self.t))
+            logger.log_tabular('ClipRatio', self.clip_ratio_schedule.value(self.t))
             logger.log_tabular('TotalInteractions', self.t)
             logger.log_tabular('Time', time.time() - start_time)
             logger.dump_tabular()

@@ -11,7 +11,9 @@ class Agent(object):
     def __init__(self,
                  obs_space,
                  act_space,
-                 ent_coef=0.01):
+                 ent_coef=0.01,
+                 v_coef=0.5,
+                 max_grad_norm=0.5):
         self.obs_space = obs_space
         self.act_space = act_space
 
@@ -28,14 +30,21 @@ class Agent(object):
 
         ratio = self.pi / self.old_pi
         min_adv = tf.where(self.adv_ph > 0, (1 + self.clip_ratio_ph) * self.adv_ph, (1 - self.clip_ratio_ph) * self.adv_ph)
-        self.pi_loss = - tf.reduce_mean(tf.minimum(ratio * self.adv_ph, min_adv)) - ent_coef * self.entropy
-        self.v_loss = tf.reduce_mean((self.ret_ph - self.val)**2)
+        self.pi_loss = - tf.reduce_mean(tf.minimum(ratio * self.adv_ph, min_adv))
+        self.v_loss = 0.5 * tf.reduce_mean((self.ret_ph - self.val)**2)
 
-        self.train_pi = tf.train.AdamOptimizer(self.pi_lr_ph).minimize(self.pi_loss)
-        self.train_v = tf.train.AdamOptimizer(self.v_lr_ph).minimize(self.v_loss)
-
+        loss = self.pi_loss - self.entropy * ent_coef + self.v_loss * v_coef
         self.pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='pi')
         self.old_pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='old_pi')
+        self.v_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='v')
+        trainable_params = self.pi_params.extend(self.v_params)
+        grads = tf.gradients(loss, trainable_params)
+        grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
+        grads = list(zip(grads, trainable_params))
+
+        trainer = tf.train.AdamOptimizer(self.lr_ph, epsilon=1e-5)
+        self.train_op = trainer.apply_gradients(grads)
+
         self.sync_old_pi_params_op = tf.group([tf.assign(old_params, params)\
                                                 for old_params, params in zip(self.old_pi_params, self.pi_params)])
 
@@ -46,8 +55,7 @@ class Agent(object):
         self.saver = tf.train.Saver(max_to_keep=3)
     
     def _create_placeholders(self):
-        self.pi_lr_ph = tf.placeholder(tf.float32, shape=None)
-        self.v_lr_ph = tf.placeholder(tf.float32, shape=None)
+        self.lr_ph = tf.placeholder(tf.float32, shape=None)
         self.clip_ratio_ph = tf.placeholder(tf.float32, shape=None)
         self.obs_ph = tf.placeholder(tf.float32, shape=[None] + list(self.obs_space.shape))
         self.act_ph = tf.placeholder(tf.int32, shape=[None, ])
@@ -59,26 +67,16 @@ class Agent(object):
         self.val, self.dist, self.old_dist = actor_critic.output()
 
     def select_action(self, obs):
-        act = self.sess.run(self.act, feed_dict={self.obs_ph: obs})
-        return act
+        act, val = self.sess.run([self.act, self.val], feed_dict={self.obs_ph: obs})
+        return act, val
 
-    def get_val(self, obs):
-        val = self.sess.run(self.val, feed_dict={self.obs_ph: obs})
-        return val
+    def train_model(self, feed_dict):
+        _, pi_loss, v_loss, kl, entropy \
+                = self.sess.run([self.train_op, self.pi_loss, self.v_loss, self.kl, self.entropy], feed_dict=feed_dict)
+        return pi_loss, v_loss, kl, entropy
 
-    def update_pi_params(self, feed_dict):
-        _, pi_loss = self.sess.run([self.train_pi, self.pi_loss], feed_dict=feed_dict)
-        return pi_loss
-
-    def update_v_params(self, feed_dict):
-        _, v_loss = self.sess.run([self.train_v, self.v_loss], feed_dict=feed_dict)
-        return v_loss
-    
     def sync_old_pi_params(self):
         self.sess.run(self.sync_old_pi_params_op)
-
-    def get_kl(self, feed_dict):
-        return self.sess.run([self.kl, self.entropy], feed_dict)
 
     def save_model(self, checkpoints_dir, epoch):
         self.saver.save(self.sess, osp.join(checkpoints_dir, 'tf_ckpt'), global_step=epoch)

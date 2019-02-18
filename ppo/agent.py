@@ -37,7 +37,7 @@ class Agent(object):
         self.pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='pi')
         self.old_pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='old_pi')
         self.v_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='v')
-        trainable_params = self.pi_params.extend(self.v_params)
+        trainable_params = self.pi_params + self.v_params
         grads = tf.gradients(loss, trainable_params)
         grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
         grads = list(zip(grads, trainable_params))

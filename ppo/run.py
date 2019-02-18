@@ -13,7 +13,20 @@ from utils.wrappers import LogWrapper
 from baselines.common.atari_wrappers import WarpFrame, wrap_deepmind
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 from utils.schedules import PiecewiseSchedule
+from collections import deque
 
+
+
+# def create_env(env_id, n_env, seed, test=False):
+#     def make_env(rank):
+#         def _thunk():
+#             env = gym.make(env_id)
+#             env.seed(seed + rank)
+#             env = LogWrapper(env)
+#             return env
+#         return _thunk
+#     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
+#     return env
 
 def create_env(env_id, n_env, seed):
     def make_env(rank):
@@ -71,6 +84,7 @@ class Runner(object):
         )
 
         self.obs = self.env.reset()
+        self.ep_info_buf = deque(maxlen=100)
 
         self.obs_space = self.env.observation_space
         self.act_space = self.env.action_space
@@ -81,7 +95,6 @@ class Runner(object):
         self.buffer = Buffer(gamma, lam)
     
     def _collect_rollouts(self, logger):
-        episode = 0
         for step in range(self.train_epoch_len):
             acts, vals = self.agent.select_action(self.obs)
             logger.store(Val=vals)
@@ -91,11 +104,7 @@ class Runner(object):
             self.obs = next_obs
             for info in infos:
                 if info.get('ep_r'):
-                    episode = 1
-                    logger.store(EpRet=info.get('ep_r'))
-                    logger.store(EpLen=info.get('ep_len'))
-        if not episode:
-            logger.store(EpRet=0, EpLen=0)
+                    self.ep_info_buf.append(info)
         last_vals= self.agent.get_val(self.obs)
         return last_vals
 
@@ -103,7 +112,7 @@ class Runner(object):
         start_time = time.time()
         last_vals = self._collect_rollouts(logger)
         obs_buf, act_buf, ret_buf, adv_buf = self.buffer.get(last_vals)
-        obs_buf /= 255.
+        # obs_buf /= 255.
         lr = self.lr_schedule.value(self.t)
         clip_ratio = self.clip_ratio_schedule.value(self.t)
         sample_range = np.arange(len(act_buf))
@@ -131,9 +140,16 @@ class Runner(object):
         for epoch in range(1, self.epochs + 1):
             self._run_train_phase(logger)
             self.agent.save_model(self.checkpoints_dir, epoch)
+            ep_ret_list = [ep_info['ep_r'] for ep_info in self.ep_info_buf]
+            ep_len_list = [ep_info['ep_len'] for ep_info in self.ep_info_buf]
+            ep_ret_mean, ep_ret_std, ep_ret_min, ep_ret_max = logger.get_statistics_scalar(ep_ret_list, with_min_and_max=True)
+            ep_len_mean, ep_len_std, ep_len_min, ep_len_max = logger.get_statistics_scalar(ep_len_list, with_min_and_max=True)
             logger.log_tabular('Epoch', epoch)
-            logger.log_tabular('EpRet', with_min_and_max=True)
-            logger.log_tabular('EpLen', with_min_and_max=True)
+            logger.log_tabular('EpRetMean', ep_ret_mean)
+            logger.log_tabular('EpRetStd', ep_ret_std)
+            logger.log_tabular('EpRetMin', ep_ret_min)
+            logger.log_tabular('EpRetMax', ep_ret_max)
+            logger.log_tabular('EpLenMean', ep_len_mean)
             logger.log_tabular('Val', average_only=True)
             logger.log_tabular('KL', average_only=True)
             logger.log_tabular('Entropy', average_only=True)

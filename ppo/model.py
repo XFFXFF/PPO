@@ -28,7 +28,7 @@ class ActorCriticModel(object):
         x = layers.conv2d(x, filters=64, kernel_size=4, strides=(2, 2), kernel_initializer=init, activation=tf.nn.relu)
         x = layers.conv2d(x, filters=64, kernel_size=3, strides=(1, 1), kernel_initializer=init, activation=tf.nn.relu)
         x = layers.flatten(x)
-        return layers.dense(x, units=512, kernel_constraint=init, activation=tf.nn.relu)
+        return layers.dense(x, units=512, kernel_initializer=init, activation=tf.nn.relu)
         # x = layers.dense(x, units=64, activation=tf.nn.tanh)
         # x = layers.dense(x, units=64, activation=tf.nn.tanh)
         # return x

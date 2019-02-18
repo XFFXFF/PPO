@@ -70,6 +70,10 @@ class Agent(object):
         act, val = self.sess.run([self.act, self.val], feed_dict={self.obs_ph: obs})
         return act, val
 
+    def get_val(self, obs):
+        val = self.sess.run(self.val, feed_dict={self.obs_ph: obs})
+        return val
+
     def train_model(self, feed_dict):
         _, pi_loss, v_loss, kl, entropy \
                 = self.sess.run([self.train_op, self.pi_loss, self.v_loss, self.kl, self.entropy], feed_dict=feed_dict)

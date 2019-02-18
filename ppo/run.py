@@ -119,9 +119,8 @@ class Runner(object):
                     self.agent.ret_ph: ret_buf[sample_idx],
                     self.agent.adv_ph: adv_buf[sample_idx],
                 }
-                pi_loss, v_loss = self.agent.train_model(feed_dict)
+                pi_loss, v_loss, kl, entropy = self.agent.train_model(feed_dict)
                 logger.store(PiLoss=pi_loss, VLoss=v_loss)
-                kl, entropy = self.agent.get_kl(feed_dict)
                 logger.store(KL=kl, Entropy=entropy)
             
         self.agent.sync_old_pi_params()

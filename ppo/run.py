@@ -93,7 +93,7 @@ class Runner(object):
             vals = self.agent.get_val(self.obs)
             logger.store(Val=vals)
             next_obs, rews, dones, infos = self.env.step(acts)
-            self.t += 1
+            self.t += self.n_env
             self.buffer.store(self.obs, acts, rews, dones, vals)
             self.obs = next_obs
             for info in infos:

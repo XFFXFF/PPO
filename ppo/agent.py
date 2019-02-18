@@ -11,11 +11,7 @@ class Agent(object):
     def __init__(self,
                  obs_space,
                  act_space,
-                 clip_ratio=0.2,
-                 ent_coef=0.01,
-                 pi_lr=0.0001,
-                 v_lr=0.0001,
-                 rnd_lr=0.0001):
+                 ent_coef=0.01):
         self.obs_space = obs_space
         self.act_space = act_space
 
@@ -31,12 +27,12 @@ class Agent(object):
         self.entropy = tf.reduce_mean(self.dist.entropy())
 
         ratio = self.pi / self.old_pi
-        min_adv = tf.where(self.adv_ph > 0, (1 + clip_ratio) * self.adv_ph, (1 - clip_ratio) * self.adv_ph)
+        min_adv = tf.where(self.adv_ph > 0, (1 + self.clip_ratio_ph) * self.adv_ph, (1 - self.clip_ratio_ph) * self.adv_ph)
         self.pi_loss = - tf.reduce_mean(tf.minimum(ratio * self.adv_ph, min_adv)) - ent_coef * self.entropy
         self.v_loss = tf.reduce_mean((self.ret_ph - self.val)**2)
 
-        self.train_pi = tf.train.AdamOptimizer(pi_lr).minimize(self.pi_loss)
-        self.train_v = tf.train.AdamOptimizer(v_lr).minimize(self.v_loss)
+        self.train_pi = tf.train.AdamOptimizer(self.pi_lr_ph).minimize(self.pi_loss)
+        self.train_v = tf.train.AdamOptimizer(self.v_lr_ph).minimize(self.v_loss)
 
         self.pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='pi')
         self.old_pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='old_pi')
@@ -50,6 +46,9 @@ class Agent(object):
         self.saver = tf.train.Saver(max_to_keep=3)
     
     def _create_placeholders(self):
+        self.pi_lr_ph = tf.placeholder(tf.float32, shape=None)
+        self.v_lr_ph = tf.placeholder(tf.float32, shape=None)
+        self.clip_ratio_ph = tf.placeholder(tf.float32, shape=None)
         self.obs_ph = tf.placeholder(tf.float32, shape=[None] + list(self.obs_space.shape))
         self.act_ph = tf.placeholder(tf.int32, shape=[None, ])
         self.adv_ph = tf.placeholder(tf.float32, shape=[None, ])

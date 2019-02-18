@@ -168,7 +168,8 @@ class Runner(object):
             logger.log_tabular('Entropy', average_only=True)
             logger.log_tabular('PiLoss', average_only=True)
             logger.log_tabular('VLoss', average_only=True)
-            logger.log_tabular('TotalInteractions', epoch * self.train_epoch_len * self.n_env)
+            logger.log_tabular('LearningRate', self.lr_schedule.value(self.t))
+            logger.log_tabular('TotalInteractions', self.t)
             logger.log_tabular('Time', time.time() - start_time)
             logger.dump_tabular()
 

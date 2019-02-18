@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow import layers
 from tensorflow.distributions import Categorical
+from baselines.common.models import nature_cnn
 
 
 initializer = tf.initializers.orthogonal
@@ -9,15 +10,15 @@ class ActorCriticModel(object):
 
     def __init__(self, obs, act_space):
         with tf.variable_scope('pi'):
-            x = self._cnn(obs)
+            x = nature_cnn(obs)
             logits = layers.dense(x, units=act_space.n)
             self.dist = Categorical(logits=logits)
         with tf.variable_scope('old_pi'):
-            x = self._cnn(obs)
+            x = nature_cnn(obs)
             logits = layers.dense(x, units=act_space.n)
             self.old_dist = Categorical(logits=logits)
         with tf.variable_scope('v'):
-            x = self._cnn(obs)
+            x = nature_cnn(obs)
             self.val = tf.squeeze(layers.dense(x, units=1))
 
     def _cnn(self, x):

@@ -112,7 +112,6 @@ class Runner(object):
         start_time = time.time()
         last_vals = self._collect_rollouts(logger)
         obs_buf, act_buf, ret_buf, adv_buf = self.buffer.get(last_vals)
-        # obs_buf /= 255.
         lr = self.lr_schedule.value(self.t)
         clip_ratio = self.clip_ratio_schedule.value(self.t)
         sample_range = np.arange(len(act_buf))

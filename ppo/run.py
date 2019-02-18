@@ -192,10 +192,11 @@ if __name__ == "__main__":
     parser.add_argument('--exp_name', type=str, default='ppo')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--model', type=int, default=None)
+    parser.add_argument('--ext_name', type=str, default='')
     args = parser.parse_args()
 
     from utils.run_utils  import setup_logger_kwargs
-    logger_kwargs = setup_logger_kwargs(args.exp_name, 'Breakout', args.seed)
+    logger_kwargs = setup_logger_kwargs(args.exp_name, 'Breakout', args.seed, extra_exp_name=args.ext_name)
 
     runner = Runner(args.epochs ,args.n_env, args.seed, logger_kwargs=logger_kwargs)
     if args.test:

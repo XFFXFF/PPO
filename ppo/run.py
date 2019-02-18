@@ -14,10 +14,10 @@ from baselines.common.atari_wrappers import WarpFrame, wrap_deepmind
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 
 
-def create_env(n_env, seed):
+def create_env(env_id, n_env, seed):
     def make_env(rank):
         def _thunk():
-            env = make_atari('BreakoutNoFrameskip-v4')
+            env = make_atari(env_id)
             env.seed(seed + rank)
             env = LogWrapper(env)
             return wrap_deepmind(env)
@@ -41,6 +41,7 @@ class Runner(object):
 
     def __init__(self,
                  epochs,
+                 env_id,
                  n_env,
                  seed,
                  gamma=0.99,
@@ -66,7 +67,7 @@ class Runner(object):
         
         tf.set_random_seed(seed)
         np.random.seed(seed)
-        self.env = create_env(n_env, seed)
+        self.env = create_env(env_id, n_env, seed)
 
         self.obs = self.env.reset()
 
@@ -187,18 +188,18 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--env', type=str, default='BreakoutNoFrameskip-v4')
     parser.add_argument('--seed', '-s', type=int, default=0)
     parser.add_argument('--n_env', '-n', type=int, default=32)
-    parser.add_argument('--exp_name', type=str, default='ppo')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--model', type=int, default=None)
     parser.add_argument('--ext_name', type=str, default='')
     args = parser.parse_args()
 
     from utils.run_utils  import setup_logger_kwargs
-    logger_kwargs = setup_logger_kwargs(args.exp_name, 'Breakout', args.seed, extra_exp_name=args.ext_name)
+    logger_kwargs = setup_logger_kwargs(args.env, args.seed, extra_exp_name=args.ext_name)
 
-    runner = Runner(args.epochs ,args.n_env, args.seed, logger_kwargs=logger_kwargs)
+    runner = Runner(args.epochs, args.env, args.n_env, args.seed, logger_kwargs=logger_kwargs)
     if args.test:
         runner.run_test_and_render(args.model)
     else:

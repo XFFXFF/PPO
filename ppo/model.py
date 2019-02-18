@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import layers
 from tensorflow.distributions import Categorical
 from baselines.common.models import nature_cnn
+import numpy as np 
 
 
 init=tf.orthogonal_initializer(np.sqrt(2))

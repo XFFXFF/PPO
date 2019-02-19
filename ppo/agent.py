@@ -1,10 +1,11 @@
 import os.path as osp
+
 import numpy as np
 import tensorflow as tf
 
+from baselines.common.tf_util import make_session
 from model import ActorCriticModel
 from utils.checkpointer import get_latest_check_num
-from baselines.common.tf_util import make_session
 
 
 class Agent(object):

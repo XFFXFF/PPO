@@ -1,20 +1,19 @@
 import time
+from collections import deque
 
 import gym
 import numpy as np
 import tensorflow as tf
 
 from agent import Agent
-from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
+from baselines.common.atari_wrappers import WarpFrame, wrap_deepmind
 from baselines.common.cmd_util import make_atari
+from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
+from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 from buffer import Buffer
 from utils.logx import EpochLogger
-from utils.wrappers import LogWrapper
-from baselines.common.atari_wrappers import WarpFrame, wrap_deepmind
-from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 from utils.schedules import PiecewiseSchedule
-from collections import deque
-
+from utils.wrappers import LogWrapper
 
 # def create_env(env_id, n_env, seed, test=False):
 #     def make_env(rank):
@@ -116,8 +115,8 @@ class Runner(object):
         sample_range = np.arange(len(act_buf))
         for i in range(3):
             np.random.shuffle(sample_range)
-            for j in range(int(len(act_buf) / 256)):
-                sample_idx = sample_range[256 * j: 256 * (j + 1)]
+            for j in range(int(len(act_buf) / 128)):
+                sample_idx = sample_range[128 * j: 128 * (j + 1)]
                 feed_dict = {
                     self.agent.lr_ph: lr,
                     self.agent.clip_ratio_ph: clip_ratio, 
@@ -191,7 +190,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--env', type=str, default='BreakoutNoFrameskip-v4')
     parser.add_argument('--seed', '-s', type=int, default=0)
-    parser.add_argument('--n_env', '-n', type=int, default=8)
+    parser.add_argument('--n_env', '-n', type=int, default=32)
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--model', type=int, default=None)
     parser.add_argument('--ext_name', type=str, default='')

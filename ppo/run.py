@@ -70,14 +70,15 @@ class Runner(object):
         self.lr_schedule = PiecewiseSchedule(
             [
                 (0, 2.5e-4),
-                (5e5, 1e-4),
-            ], outside_value=1e-4,
+                (2e6, 1e-4),
+                (5e6, 5e-5)
+            ], outside_value=5e-5,
         )
 
         self.clip_ratio_schedule = PiecewiseSchedule(
             [
                 (0, 0.1),
-                (5e5, 0.05)
+                (2e6, 0.05)
             ], outside_value=0.05,
         )
 

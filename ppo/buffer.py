@@ -28,8 +28,8 @@ class Buffer(object):
         for i in reversed(range(len(self.rew_buf))):
             delta = rew_buf[i] + self.gamma * val_buf[i+1] * (1 - done_buf[i]) - val_buf[i]
             adv_buf[i] = last_gae_lam = delta + self.gamma * self.lam * (1 - done_buf[i]) * last_gae_lam
-            ret_buf[i] = last_ret =  rew_buf[i] + self.gamma * last_ret * (1 - done_buf[i])
-
+            # ret_buf[i] = last_ret =  rew_buf[i] + self.gamma * last_ret * (1 - done_buf[i])
+        ret_buf = adv_buf + val_buf[:-1]
         obs_buf, act_buf, ret_buf, adv_buf = map(self.swap_and_flatten, (obs_buf, act_buf, ret_buf, adv_buf))
 
         adv_buf = (adv_buf - np.mean(adv_buf)) / (np.std(adv_buf) + 1e-8)

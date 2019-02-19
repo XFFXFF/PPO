@@ -16,7 +16,6 @@ from utils.schedules import PiecewiseSchedule
 from collections import deque
 
 
-
 # def create_env(env_id, n_env, seed, test=False):
 #     def make_env(rank):
 #         def _thunk():
@@ -71,15 +70,14 @@ class Runner(object):
         self.lr_schedule = PiecewiseSchedule(
             [
                 (0, 2.5e-4),
-                (1e6, 1e-4),
-                (2e6, 5e-5),
-            ], outside_value=5e-5,
+                (5e5, 1e-4),
+            ], outside_value=1e-4,
         )
 
         self.clip_ratio_schedule = PiecewiseSchedule(
             [
                 (0, 0.1),
-                (1e6, 0.05)
+                (5e5, 0.05)
             ], outside_value=0.05,
         )
 

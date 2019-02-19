@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from model import ActorCriticModel
 from utils.checkpointer import get_latest_check_num
+from baselines.common.tf_util import make_session
 
 
 class Agent(object):
@@ -48,7 +49,8 @@ class Agent(object):
         self.sync_old_pi_params_op = tf.group([tf.assign(old_params, params)\
                                                 for old_params, params in zip(self.old_pi_params, self.pi_params)])
 
-        self.sess = tf.Session()
+        self.sess = make_session()
+        # self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
         self.sync_old_pi_params()
 

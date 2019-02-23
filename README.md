@@ -17,4 +17,5 @@ pip install -e .
 
 ### Train a Model
 ```
-python -m 
+python -m ppo.run --env BreakoutNoFrameskip-v4
+```

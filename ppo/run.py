@@ -5,15 +5,15 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from agent import Agent
+from ppo.agent import Agent
 from baselines.common.atari_wrappers import WarpFrame, wrap_deepmind
 from baselines.common.cmd_util import make_atari
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
-from buffer import Buffer
-from utils.logx import EpochLogger
-from utils.schedules import PiecewiseSchedule
-from utils.wrappers import LogWrapper
+from ppo.buffer import Buffer
+from ppo.utils.logx import EpochLogger
+from ppo.utils.schedules import PiecewiseSchedule
+from ppo.utils.wrappers import LogWrapper
 
 
 def create_env(env_id, n_env, seed):
@@ -183,11 +183,11 @@ if __name__ == "__main__":
     parser.add_argument('--n_env', '-n', type=int, default=32)
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--model', type=int, default=None)
-    parser.add_argument('--ext_name', type=str, default='')
+    parser.add_argument('--exp_name', type=str, default='')
     args = parser.parse_args()
 
-    from utils.run_utils  import setup_logger_kwargs
-    logger_kwargs = setup_logger_kwargs(args.env, args.seed, extra_exp_name=args.ext_name)
+    from ppo.utils.run_utils  import setup_logger_kwargs
+    logger_kwargs = setup_logger_kwargs(args.env, args.seed, exp_name=args.exp_name)
 
     runner = Runner(args.epochs, args.env, args.n_env, args.seed, logger_kwargs=logger_kwargs)
     if args.test:

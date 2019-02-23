@@ -11,7 +11,7 @@ DEFAULT_DATA_DIR = osp.join(osp.abspath(osp.dirname(osp.dirname(__file__))), 'da
 FORCE_DATESTAMP = False
 
 
-def setup_logger_kwargs(env_name, seed=None, data_dir=None, datestamp=False, extra_exp_name=None):
+def setup_logger_kwargs(env_name, seed=None, data_dir=None, datestamp=False, exp_name=None):
     """
     Sets up the output_dir for a logger and returns a dict for logger kwargs.
 
@@ -68,8 +68,8 @@ def setup_logger_kwargs(env_name, seed=None, data_dir=None, datestamp=False, ext
         else:
             subfolder = ''.join(['seed', str(seed)])
         
-        if extra_exp_name:
-            subfolder = osp.join(subfolder, extra_exp_name)
+        if exp_name:
+            subfolder = osp.join(subfolder, exp_name)
         relpath = osp.join(relpath, subfolder)
 
     data_dir = data_dir or DEFAULT_DATA_DIR

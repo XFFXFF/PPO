@@ -4,8 +4,8 @@ import numpy as np
 import tensorflow as tf
 
 from baselines.common.tf_util import make_session
-from model import ActorCriticModel
-from utils.checkpointer import get_latest_check_num
+from ppo.model import ActorCriticModel
+from ppo.utils.checkpointer import get_latest_check_num
 
 
 class Agent(object):

@@ -3,7 +3,6 @@ import tensorflow as tf
 from tensorflow import layers
 from tensorflow.distributions import Categorical
 
-
 init=tf.orthogonal_initializer(np.sqrt(2))
 
 

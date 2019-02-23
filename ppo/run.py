@@ -15,28 +15,28 @@ from utils.logx import EpochLogger
 from utils.schedules import PiecewiseSchedule
 from utils.wrappers import LogWrapper
 
-# def create_env(env_id, n_env, seed, test=False):
-#     def make_env(rank):
-#         def _thunk():
-#             env = gym.make(env_id)
-#             env.seed(seed + rank)
-#             env = LogWrapper(env)
-#             return env
-#         return _thunk
-#     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
-#     return env
-
-def create_env(env_id, n_env, seed):
+def create_env(env_id, n_env, seed, test=False):
     def make_env(rank):
         def _thunk():
-            env = make_atari(env_id)
+            env = gym.make(env_id)
             env.seed(seed + rank)
             env = LogWrapper(env)
-            return wrap_deepmind(env)
+            return env
         return _thunk
     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
-    env = VecFrameStack(env, 4)
     return env
+
+# def create_env(env_id, n_env, seed):
+#     def make_env(rank):
+#         def _thunk():
+#             env = make_atari(env_id)
+#             env.seed(seed + rank)
+#             env = LogWrapper(env)
+#             return wrap_deepmind(env)
+#         return _thunk
+#     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
+#     env = VecFrameStack(env, 4)
+#     return env
 
 
 class Runner(object):
@@ -94,11 +94,11 @@ class Runner(object):
     
     def _collect_rollouts(self, logger):
         for step in range(self.train_epoch_len):
-            acts, vals = self.agent.select_action(self.obs)
+            acts, vals, log_pis = self.agent.select_action(self.obs)
             logger.store(Val=vals)
             next_obs, rews, dones, infos = self.env.step(acts)
             self.t += self.n_env
-            self.buffer.store(self.obs, acts, rews, dones, vals)
+            self.buffer.store(self.obs, acts, rews, dones, vals, log_pis)
             self.obs = next_obs
             for info in infos:
                 if info.get('ep_r'):
@@ -109,7 +109,7 @@ class Runner(object):
     def _run_train_phase(self, logger):
         start_time = time.time()
         last_vals = self._collect_rollouts(logger)
-        obs_buf, act_buf, ret_buf, adv_buf = self.buffer.get(last_vals)
+        obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf = self.buffer.get(last_vals)
         lr = self.lr_schedule.value(self.t)
         clip_ratio = self.clip_ratio_schedule.value(self.t)
         sample_range = np.arange(len(act_buf))
@@ -124,12 +124,13 @@ class Runner(object):
                     self.agent.act_ph: act_buf[sample_idx],
                     self.agent.ret_ph: ret_buf[sample_idx],
                     self.agent.adv_ph: adv_buf[sample_idx],
+                    self.agent.old_log_pi_ph: log_pi_buf[sample_idx]
                 }
                 pi_loss, v_loss, kl, entropy = self.agent.train_model(feed_dict)
                 logger.store(PiLoss=pi_loss, VLoss=v_loss)
                 logger.store(KL=kl, Entropy=entropy)
             
-        self.agent.sync_old_pi_params()
+        # self.agent.sync_old_pi_params()
     
     def run_experiment(self):
         start_time = time.time()

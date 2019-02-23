@@ -24,15 +24,11 @@ class Agent(object):
 
         self.act = self.dist.sample()
 
-        # self.pi = self.dist.prob(self.act_ph)
-        # self.old_pi = tf.stop_gradient(self.old_dist.prob(self.act_ph))
         self.old_log_pi = self.dist.log_prob(self.act)
         self.log_pi = self.dist.log_prob(self.act_ph)
 
-        # self.kl = tf.reduce_mean(self.old_dist.kl_divergence(self.dist))
         self.entropy = tf.reduce_mean(self.dist.entropy())
 
-        # ratio = self.pi / self.old_pi
         ratio = tf.exp(self.log_pi - self.old_log_pi_ph)
         self.approx_kl = tf.reduce_mean(tf.square(self.log_pi - self.old_log_pi_ph))
         min_adv = tf.where(self.adv_ph > 0, (1 + self.clip_ratio_ph) * self.adv_ph, (1 - self.clip_ratio_ph) * self.adv_ph)
@@ -42,12 +38,8 @@ class Agent(object):
         v_loss1 = tf.square(self.val - self.ret_ph)
         v_loss2 = tf.square(val_clipped - self.ret_ph)
         self.v_loss = 0.5 * tf.reduce_mean(tf.maximum(v_loss1, v_loss2))
-        # self.v_loss = 0.5 * tf.reduce_mean((self.ret_ph - self.val)**2)
 
         loss = self.pi_loss - self.entropy * ent_coef + self.v_loss * v_coef
-        # self.pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='pi')
-        # # self.old_pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='old_pi')
-        # self.v_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='v')
         trainable_params = tf.trainable_variables()
         grads = tf.gradients(loss, trainable_params)
         grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
@@ -56,13 +48,8 @@ class Agent(object):
         trainer = tf.train.AdamOptimizer(self.lr_ph, epsilon=1e-5)
         self.train_op = trainer.apply_gradients(grads)
 
-        # self.sync_old_pi_params_op = tf.group([tf.assign(old_params, params)\
-        #                                         for old_params, params in zip(self.old_pi_params, self.pi_params)])
-
         self.sess = make_session()
-        # self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
-        # self.sync_old_pi_params()
 
         self.saver = tf.train.Saver(max_to_keep=3)
     
@@ -92,9 +79,6 @@ class Agent(object):
         _, pi_loss, v_loss, kl, entropy \
                 = self.sess.run([self.train_op, self.pi_loss, self.v_loss, self.approx_kl, self.entropy], feed_dict=feed_dict)
         return pi_loss, v_loss, kl, entropy
-
-    # def sync_old_pi_params(self):
-    #     self.sess.run(self.sync_old_pi_params_op)
 
     def save_model(self, checkpoints_dir, epoch):
         self.saver.save(self.sess, osp.join(checkpoints_dir, 'tf_ckpt'), global_step=epoch)

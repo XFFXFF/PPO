@@ -37,13 +37,18 @@ class Agent(object):
         self.approx_kl = tf.reduce_mean(tf.square(self.log_pi - self.old_log_pi_ph))
         min_adv = tf.where(self.adv_ph > 0, (1 + self.clip_ratio_ph) * self.adv_ph, (1 - self.clip_ratio_ph) * self.adv_ph)
         self.pi_loss = - tf.reduce_mean(tf.minimum(ratio * self.adv_ph, min_adv))
-        self.v_loss = 0.5 * tf.reduce_mean((self.ret_ph - self.val)**2)
+
+        val_clipped = self.old_v_ph + tf.clip_by_value(self.val - self.old_v_ph, -self.clip_ratio_ph, self.clip_ratio_ph)
+        v_loss1 = tf.square(self.val - self.ret_ph)
+        v_loss2 = tf.square(val_clipped - self.ret_ph)
+        self.v_loss = 0.5 * tf.reduce_mean(tf.maximum(v_loss1, v_loss2))
+        # self.v_loss = 0.5 * tf.reduce_mean((self.ret_ph - self.val)**2)
 
         loss = self.pi_loss - self.entropy * ent_coef + self.v_loss * v_coef
-        self.pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='pi')
-        # self.old_pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='old_pi')
-        self.v_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='v')
-        trainable_params = self.pi_params + self.v_params
+        # self.pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='pi')
+        # # self.old_pi_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='old_pi')
+        # self.v_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='v')
+        trainable_params = tf.trainable_variables()
         grads = tf.gradients(loss, trainable_params)
         grads, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
         grads = list(zip(grads, trainable_params))
@@ -69,6 +74,7 @@ class Agent(object):
         self.adv_ph = tf.placeholder(tf.float32, shape=[None, ])
         self.ret_ph = tf.placeholder(tf.float32, shape=[None, ]) 
         self.old_log_pi_ph = tf.placeholder(tf.float32, shape=[None]) 
+        self.old_v_ph = tf.placeholder(tf.float32, shape=[None])
 
     def _create_network(self):
         actor_critic = ActorCriticModel(self.obs_ph, self.act_space)

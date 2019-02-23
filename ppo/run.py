@@ -109,7 +109,7 @@ class Runner(object):
     def _run_train_phase(self, logger):
         start_time = time.time()
         last_vals = self._collect_rollouts(logger)
-        obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf = self.buffer.get(last_vals)
+        obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf, val_buf = self.buffer.get(last_vals)
         lr = self.lr_schedule.value(self.t)
         clip_ratio = self.clip_ratio_schedule.value(self.t)
         sample_range = np.arange(len(act_buf))
@@ -124,7 +124,8 @@ class Runner(object):
                     self.agent.act_ph: act_buf[sample_idx],
                     self.agent.ret_ph: ret_buf[sample_idx],
                     self.agent.adv_ph: adv_buf[sample_idx],
-                    self.agent.old_log_pi_ph: log_pi_buf[sample_idx]
+                    self.agent.old_log_pi_ph: log_pi_buf[sample_idx],
+                    self.agent.old_v_ph: val_buf[sample_idx]
                 }
                 pi_loss, v_loss, kl, entropy = self.agent.train_model(feed_dict)
                 logger.store(PiLoss=pi_loss, VLoss=v_loss)

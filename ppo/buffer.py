@@ -25,20 +25,21 @@ class Buffer(object):
         val_buf = np.asarray(self.val_buf, dtype=np.float32)
         log_pi_buf = np.asarray(self.log_pi_buf, dtype=np.float32)
 
-        adv_buf, ret_buf = np.zeros_like(rew_buf), np.zeros_like(rew_buf)
+        adv_buf = np.zeros_like(rew_buf)
         last_gae_lam, last_ret = 0, last_val
         for i in reversed(range(len(self.rew_buf))):
-            delta = rew_buf[i] + self.gamma * val_buf[i+1] * (1 - done_buf[i]) - val_buf[i]
-            adv_buf[i] = last_gae_lam = delta + self.gamma * self.lam * (1 - done_buf[i]) * last_gae_lam
+            next_not_done = 1.0 - done_buf[i]
+            delta = rew_buf[i] + self.gamma * val_buf[i+1] * next_not_done - val_buf[i]
+            adv_buf[i] = last_gae_lam = delta + self.gamma * self.lam * next_not_done * last_gae_lam
             # ret_buf[i] = last_ret =  rew_buf[i] + self.gamma * last_ret * (1 - done_buf[i])
         ret_buf = adv_buf + val_buf[:-1]
-        obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf = map(self.swap_and_flatten, (obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf))
+        obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf, val_buf = map(self.swap_and_flatten, (obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf, val_buf[:-1]))
 
         adv_buf = (adv_buf - np.mean(adv_buf)) / (np.std(adv_buf) + 1e-8)
 
         self.obs_buf, self.act_buf, self.rew_buf, self.done_buf, self.val_buf, self.log_pi_buf = [], [], [], [], [], []
 
-        return obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf
+        return obs_buf, act_buf, ret_buf, adv_buf, log_pi_buf, val_buf
     
     def swap_and_flatten(self, arr):
         shape = arr.shape

@@ -15,28 +15,28 @@ from utils.logx import EpochLogger
 from utils.schedules import PiecewiseSchedule
 from utils.wrappers import LogWrapper
 
-def create_env(env_id, n_env, seed, test=False):
-    def make_env(rank):
-        def _thunk():
-            env = gym.make(env_id)
-            env.seed(seed + rank)
-            env = LogWrapper(env)
-            return env
-        return _thunk
-    env = SubprocVecEnv([make_env(i) for i in range(n_env)])
-    return env
-
-# def create_env(env_id, n_env, seed):
+# def create_env(env_id, n_env, seed, test=False):
 #     def make_env(rank):
 #         def _thunk():
-#             env = make_atari(env_id)
+#             env = gym.make(env_id)
 #             env.seed(seed + rank)
 #             env = LogWrapper(env)
-#             return wrap_deepmind(env)
+#             return env
 #         return _thunk
 #     env = SubprocVecEnv([make_env(i) for i in range(n_env)])
-#     env = VecFrameStack(env, 4)
 #     return env
+
+def create_env(env_id, n_env, seed):
+    def make_env(rank):
+        def _thunk():
+            env = make_atari(env_id)
+            env.seed(seed + rank)
+            env = LogWrapper(env)
+            return wrap_deepmind(env)
+        return _thunk
+    env = SubprocVecEnv([make_env(i) for i in range(n_env)])
+    env = VecFrameStack(env, 4)
+    return env
 
 
 class Runner(object):
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--env', type=str, default='BreakoutNoFrameskip-v4')
     parser.add_argument('--seed', '-s', type=int, default=0)
-    parser.add_argument('--n_env', '-n', type=int, default=32)
+    parser.add_argument('--n_env', '-n', type=int, default=12)
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--model', type=int, default=None)
     parser.add_argument('--ext_name', type=str, default='')
